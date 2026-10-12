@@ -1,0 +1,66 @@
+name: vacationly
+services:
+  database:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: vacationly
+      MYSQL_USER: vacationly
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Run node scripts/setup.mjs first}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Run node scripts/setup.mjs first}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - database-data:/var/lib/mysql
+      - ./Database/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./Database/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Backend/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MYSQL_HOST: database
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: vacationly
+      MYSQL_USER: vacationly
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Run node scripts/setup.mjs first}
+      CLIENT_ORIGIN: http://localhost:5173
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - uploaded-images:/app/uploads
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  database-data:
+  uploaded-images:

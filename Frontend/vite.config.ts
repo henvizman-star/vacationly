@@ -1,0 +1,9 @@
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+    plugins: [react()],
+    // Forward development API calls to the locally running backend.
+    server: { host: "127.0.0.1", port: 5173, strictPort: true,
+        proxy: { "/api": "http://127.0.0.1:4001" } },
+    test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"], clearMocks: true }
+});

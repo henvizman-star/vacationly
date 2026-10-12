@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+coverage/
+test-results/
+artifacts/
+# A real database export may contain local account data; include it only in the local submission ZIP.
+Database/vacationly-export.sql
+*.log
+*.tsbuildinfo
+# Class reference may contain private configuration; it is not a deliverable.
+01 - Northwind/
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+

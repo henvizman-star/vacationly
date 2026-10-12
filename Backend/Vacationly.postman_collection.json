@@ -1,0 +1,428 @@
+{
+  "info": {
+    "name": "Vacationly — Complete API",
+    "description": "Authenticate as User for likes and Admin for management/reports. Choose future startDate/endDate and a real JPEG/PNG for uploads. AI endpoints require OPENAI_API_KEY on the server. Delete targets only createdVacationId from Add.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4001"
+    },
+    {
+      "key": "email",
+      "value": "student@example.com"
+    },
+    {
+      "key": "password",
+      "value": "1234"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "vacationId",
+      "value": "1"
+    },
+    {
+      "key": "createdVacationId",
+      "value": ""
+    },
+    {
+      "key": "startDate",
+      "value": "2030-01-01"
+    },
+    {
+      "key": "endDate",
+      "value": "2030-01-05"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health",
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "Register a regular user",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/register",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200 || pm.response.code === 201) pm.collectionVariables.set('token', pm.response.json());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login (use admin credentials for management)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200 || pm.response.code === 201) pm.collectionVariables.set('token', pm.response.json());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Current user",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/me"
+      }
+    },
+    {
+      "name": "Vacations — all",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations?filter=all&page=1"
+      }
+    },
+    {
+      "name": "Vacations — liked",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations?filter=liked&page=1"
+      }
+    },
+    {
+      "name": "Vacations — active",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations?filter=active&page=1"
+      }
+    },
+    {
+      "name": "Vacations — upcoming",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations?filter=upcoming&page=1"
+      }
+    },
+    {
+      "name": "Second page",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations?page=2"
+      }
+    },
+    {
+      "name": "Like",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/vacations/{{vacationId}}/like"
+      }
+    },
+    {
+      "name": "Unlike",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/vacations/{{vacationId}}/like"
+      }
+    },
+    {
+      "name": "Add vacation (choose an image file)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/vacations",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "destination",
+              "value": "Paris",
+              "type": "text"
+            },
+            {
+              "key": "country",
+              "value": "France",
+              "type": "text"
+            },
+            {
+              "key": "continent",
+              "value": "Europe",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Explore the city.",
+              "type": "text"
+            },
+            {
+              "key": "startDate",
+              "value": "{{startDate}}",
+              "type": "text"
+            },
+            {
+              "key": "endDate",
+              "value": "{{endDate}}",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "1290.50",
+              "type": "text"
+            },
+            {
+              "key": "image",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "header": []
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('createdVacationId', String(pm.response.json().id));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Read created vacation",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations/{{createdVacationId}}"
+      }
+    },
+    {
+      "name": "Edit and keep image",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/vacations/{{createdVacationId}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "destination",
+              "value": "Paris",
+              "type": "text"
+            },
+            {
+              "key": "country",
+              "value": "France",
+              "type": "text"
+            },
+            {
+              "key": "continent",
+              "value": "Europe",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Explore the city.",
+              "type": "text"
+            },
+            {
+              "key": "startDate",
+              "value": "{{startDate}}",
+              "type": "text"
+            },
+            {
+              "key": "endDate",
+              "value": "{{endDate}}",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "1290.50",
+              "type": "text"
+            }
+          ]
+        },
+        "header": []
+      }
+    },
+    {
+      "name": "Edit and replace image",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/vacations/{{createdVacationId}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "destination",
+              "value": "Paris",
+              "type": "text"
+            },
+            {
+              "key": "country",
+              "value": "France",
+              "type": "text"
+            },
+            {
+              "key": "continent",
+              "value": "Europe",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Explore the city.",
+              "type": "text"
+            },
+            {
+              "key": "startDate",
+              "value": "{{startDate}}",
+              "type": "text"
+            },
+            {
+              "key": "endDate",
+              "value": "{{endDate}}",
+              "type": "text"
+            },
+            {
+              "key": "price",
+              "value": "1290.50",
+              "type": "text"
+            },
+            {
+              "key": "image",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "header": []
+      }
+    },
+    {
+      "name": "Likes report",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations/report"
+      }
+    },
+    {
+      "name": "Download CSV",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vacations/report.csv"
+      }
+    },
+    {
+      "name": "AI travel recommendation",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/ai/recommendation",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"destination\": \"Rome\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Ask database through MCP",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/ai/question",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"Which upcoming vacations are in Europe?\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Delete created vacation",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/vacations/{{createdVacationId}}"
+      }
+    }
+  ]
+}
