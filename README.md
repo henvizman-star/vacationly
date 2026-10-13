@@ -1,5 +1,7 @@
 ﻿# Vacationly
 
+[GitHub repository](https://github.com/henvizman-star/vacationly)
+
 A full-stack vacation discovery and management application by **henvizman**, built with React, TypeScript, Express and MySQL.
 
 Explore real destinations, save favorite vacations, get AI travel ideas and ask questions about the vacation collection. Administrators manage vacations, uploaded images and likes reports. The English interface features rounded typography, a coastal background with scroll parallax, and accessible AI loading feedback.
