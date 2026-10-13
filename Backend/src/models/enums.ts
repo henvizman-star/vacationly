@@ -1,6 +1,8 @@
 // Keep the same role values in the database, backend and frontend.
-export enum Role { Admin = 1, User = 2 }
-
+export enum Role {
+    Admin = 1,
+    User = 2,
+}
 
 // Named HTTP response codes used by the API.
 export enum HttpStatus {

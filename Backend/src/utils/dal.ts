@@ -9,10 +9,14 @@ export interface Database {
 // Shares a pool of MySQL connections across application services.
 class Dal implements Database {
     private readonly pool = mysql.createPool({
-        host: appConfig.mysqlHost, port: appConfig.mysqlPort,
-        user: appConfig.mysqlUser, password: appConfig.mysqlPassword,
+        host: appConfig.mysqlHost,
+        port: appConfig.mysqlPort,
+        user: appConfig.mysqlUser,
+        password: appConfig.mysqlPassword,
         database: appConfig.mysqlDatabase,
-        connectionLimit: 10, dateStrings: true, decimalNumbers: true
+        connectionLimit: 10,
+        dateStrings: true,
+        decimalNumbers: true,
     });
 
     // Runs a parameterized SQL query and returns its result.
@@ -22,6 +26,8 @@ class Dal implements Database {
     }
 
     // Closes the database connection pool.
-    public async close(): Promise<void> { await this.pool.end(); }
+    public async close(): Promise<void> {
+        await this.pool.end();
+    }
 }
 export const dal = new Dal();

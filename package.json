@@ -1,0 +1,14 @@
+{
+    "name": "vacationly",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Vacation discovery and management with React, Express and MySQL",
+    "scripts": {
+        "setup": "node scripts/setup.mjs",
+        "format": "prettier --write Backend/src Backend/tests Frontend/src scripts docs \"*.json\" \"*.md\" \"*.yaml\" Frontend/vite.config.ts Frontend/tsconfig.json Backend/tsconfig.json Backend/package.json Frontend/package.json",
+        "format:check": "prettier --check Backend/src Backend/tests Frontend/src scripts docs \"*.json\" \"*.md\" \"*.yaml\" Frontend/vite.config.ts Frontend/tsconfig.json Backend/tsconfig.json Backend/package.json Frontend/package.json"
+    },
+    "devDependencies": {
+        "prettier": "^3.6.2"
+    }
+}

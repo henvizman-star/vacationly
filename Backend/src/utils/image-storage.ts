@@ -17,13 +17,23 @@ export class ImageStorage {
     public constructor(private readonly directory = appConfig.uploadsPath) {}
 
     // Accept exactly one image field. Editing may omit it to keep the existing image.
-    public getImage(files: FileArray | null | undefined, required = true): UploadedFile | undefined {
+    public getImage(
+        files: FileArray | null | undefined,
+        required = true,
+    ): UploadedFile | undefined {
         if (!files || Object.keys(files).length === 0) {
-            if (required) throw new ClientError(HttpStatus.UnprocessableEntity, "A vacation image is required.");
+            if (required)
+                throw new ClientError(
+                    HttpStatus.UnprocessableEntity,
+                    "A vacation image is required.",
+                );
             return undefined;
         }
         if (Object.keys(files).length !== 1 || !files.image || Array.isArray(files.image)) {
-            throw new ClientError(HttpStatus.UnprocessableEntity, "Upload one file in the image field.");
+            throw new ClientError(
+                HttpStatus.UnprocessableEntity,
+                "Upload one file in the image field.",
+            );
         }
         return files.image;
     }
@@ -37,8 +47,16 @@ export class ImageStorage {
         if (!file.size || !data.length) {
             throw new ClientError(HttpStatus.UnprocessableEntity, "The image file is empty.");
         }
-        if (file.mimetype === "image/jpeg" && data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return "jpg";
-        if (file.mimetype === "image/png" && data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return "png";
+        if (
+            file.mimetype === "image/jpeg" &&
+            data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))
+        )
+            return "jpg";
+        if (
+            file.mimetype === "image/png" &&
+            data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        )
+            return "png";
         throw new ClientError(HttpStatus.UnprocessableEntity, "Upload a JPEG or PNG image.");
     }
 
@@ -65,8 +83,9 @@ export class ImageStorage {
         if (!isUploadedImageName(imageName)) {
             throw new ClientError(HttpStatus.BadRequest, "Invalid uploaded image name.");
         }
-        try { await fs.unlink(path.join(this.directory, imageName)); }
-        catch (error) {
+        try {
+            await fs.unlink(path.join(this.directory, imageName));
+        } catch (error) {
             if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
         }
     }

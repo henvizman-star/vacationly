@@ -2,7 +2,6 @@
 **/dist
 **/.env
 **/.env.*
-!**/.env.example
 .git
 01 - Northwind
 artifacts
@@ -10,3 +9,8 @@ test-results
 Database/vacationly-export.sql
 *.pdf
 *.log
+local-assets
+PROJECT_MEMORY.md
+CLASS_PROJECT_REVIEW.md
+AGENTS.md
+PRE_SUBMISSION.md

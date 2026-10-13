@@ -1,7 +1,12 @@
 import type { ResultSetHeader } from "mysql2";
 import { ClientError } from "../models/client-error";
 import { HttpStatus, Role } from "../models/enums";
-import type { CredentialsModel, RegistrationModel, StoredUserModel, UserModel } from "../models/user-model";
+import type {
+    CredentialsModel,
+    RegistrationModel,
+    StoredUserModel,
+    UserModel,
+} from "../models/user-model";
 import { cyber } from "../utils/cyber";
 import { dal, type Database } from "../utils/dal";
 
@@ -16,11 +21,14 @@ export class UserService {
         try {
             const info = await this.database.execute<ResultSetHeader>(
                 "INSERT INTO users (firstName, lastName, email, passwordHash, roleId) VALUES (?, ?, ?, ?, ?)",
-                [user.firstName, user.lastName, user.email, passwordHash, Role.User]
+                [user.firstName, user.lastName, user.email, passwordHash, Role.User],
             );
             return cyber.generateToken({
-                id: info.insertId, firstName: user.firstName, lastName: user.lastName,
-                email: user.email, roleId: Role.User
+                id: info.insertId,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                roleId: Role.User,
             });
         } catch (error) {
             // The UNIQUE constraint handles concurrent attempts with the same email.
@@ -35,10 +43,10 @@ export class UserService {
     public async login(credentials: CredentialsModel): Promise<string> {
         const users = await this.database.execute<StoredUserModel[]>(
             "SELECT id, firstName, lastName, email, passwordHash, roleId FROM users WHERE email = ?",
-            [credentials.email]
+            [credentials.email],
         );
         const user = users[0];
-        if (!user || !await cyber.verifyPassword(credentials.password, user.passwordHash)) {
+        if (!user || !(await cyber.verifyPassword(credentials.password, user.passwordHash))) {
             throw new ClientError(HttpStatus.Unauthorized, "Incorrect email or password.");
         }
         return cyber.generateToken(user);
@@ -47,9 +55,11 @@ export class UserService {
     // Returns current public account details or rejects a deleted account.
     public async getOne(id: number): Promise<UserModel> {
         const users = await this.database.execute<UserModel[]>(
-            "SELECT id, firstName, lastName, email, roleId FROM users WHERE id = ?", [id]
+            "SELECT id, firstName, lastName, email, roleId FROM users WHERE id = ?",
+            [id],
         );
-        if (!users[0]) throw new ClientError(HttpStatus.Unauthorized, "Your account is no longer available.");
+        if (!users[0])
+            throw new ClientError(HttpStatus.Unauthorized, "Your account is no longer available.");
         return users[0];
     }
 }

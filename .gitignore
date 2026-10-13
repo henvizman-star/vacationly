@@ -2,7 +2,6 @@ node_modules/
 dist/
 .env
 .env.*
-!.env.example
 coverage/
 test-results/
 artifacts/
@@ -14,4 +13,12 @@ Database/vacationly-export.sql
 01 - Northwind/
 Backend/uploads/*
 !Backend/uploads/.gitkeep
+
+# Local assignment material and working notes are not repository deliverables.
+AGENTS.md
+PROJECT_MEMORY.md
+CLASS_PROJECT_REVIEW.md
+PRE_SUBMISSION.md
+Project-3-MySQLMongoDB-Node.js-React-TypeScript.pdf
+local-assets/
 

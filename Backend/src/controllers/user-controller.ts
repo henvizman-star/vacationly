@@ -6,16 +6,19 @@ import { userService } from "../services/user-service";
 import { securityMiddleware } from "../middleware/security-middleware";
 
 class UserController {
-
     public readonly router = Router();
 
     // Registers user routes, limits authentication attempts, and protects /api/me.
     public constructor() {
-        const limit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 50,
+        const limit = rateLimit({
+            windowMs: 15 * 60 * 1000,
+            limit: 50,
 
             statusCode: HttpStatus.TooManyRequests,
-            standardHeaders: "draft-8", legacyHeaders: false,
-            message: { message: "Too many attempts. Please try again later." } });
+            standardHeaders: "draft-8",
+            legacyHeaders: false,
+            message: { message: "Too many attempts. Please try again later." },
+        });
 
         this.router.post("/api/register", limit, this.register);
         this.router.post("/api/login", limit, this.login);

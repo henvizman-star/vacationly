@@ -7,20 +7,26 @@ export const tokenKey = "vacationly-token";
 // A dedicated instance keeps the token on requests to our own API only.
 export const api = axios.create({ baseURL: "/api", timeout: 15000 });
 // Adds the saved token to requests sent through this API client.
-api.interceptors.request.use(request => {
+api.interceptors.request.use((request) => {
     const token = localStorage.getItem(tokenKey);
     if (token) request.headers.Authorization = "Bearer " + token;
     return request;
 });
 // Clears the session when a protected request fails authentication.
-api.interceptors.response.use(response => response, error => {
-    if (axios.isAxiosError(error) && error.response?.status === HttpStatus.Unauthorized &&
-        !["/login", "/register"].includes(error.config?.url ?? "")) {
-        localStorage.removeItem(tokenKey);
-        store.dispatch(userSlice.actions.signOut());
-    }
-    return Promise.reject(error);
-});
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (
+            axios.isAxiosError(error) &&
+            error.response?.status === HttpStatus.Unauthorized &&
+            !["/login", "/register"].includes(error.config?.url ?? "")
+        ) {
+            localStorage.removeItem(tokenKey);
+            store.dispatch(userSlice.actions.signOut());
+        }
+        return Promise.reject(error);
+    },
+);
 // Converts API and network failures into messages suitable for the UI.
 export function errorMessage(error: unknown): string {
     if (axios.isAxiosError<{ message?: string }>(error)) {

@@ -1,46 +1,82 @@
-# Vacationly
+﻿# Vacationly
 
-Vacation discovery and management project by **henvizman**. English UI, React/TypeScript, Node.js/Express/TypeScript and MySQL.
+A full-stack vacation discovery and management application by **henvizman**, built with React, TypeScript, Express and MySQL.
 
-GitHub repository: **pending — add the real repository URL before submission**.
+Explore real destinations, save favorite vacations, get AI travel ideas and ask questions about the vacation collection. Administrators manage vacations, uploaded images and likes reports. The English interface features rounded typography, a coastal background with scroll parallax, and accessible AI loading feedback.
 
-## Implemented features
+## Features
 
-- Registration, login, JWT session restoration, logout and server-side User/Admin permissions.
-- Vacation cards, images, like counts and personal likes; 9 vacations per page, departure-date sorting and All/Favorites/Active/Upcoming filters.
-- Administrator creation, editing and deletion with confirmation; optional image replacement when editing, required image when creating.
-- Price range 0–10,000 USD, valid date ordering, no past dates on creation and past dates allowed on editing.
-- Administrator likes graph, accessible table and CSV download for all vacations including zero likes.
-- AI travel recommendations and natural-language database questions through a real backend MCP server.
-- Public About, role-aware navigation, developer details and responsive layout.
+- Registration and login, hashed passwords, JWT session restoration and server-side User/Admin permissions.
+- Vacation cards sorted by start date, nine per page, with All, Favorites, Active and Upcoming filters.
+- Personal Like/Unlike actions and total likes, with duplicate prevention and per-user isolation.
+- Administrator creation, editing and deletion with confirmation, including image replacement and file cleanup.
+- Validation of required fields, real dates, price between USD 0 and 10,000, and JPEG/PNG uploads up to 5 MiB.
+- Administrator likes chart, accessible report table and UTF-8 CSV export, including vacations with zero likes.
+- AI destination recommendations and database questions through real MCP tool calls.
+- Public About page, responsive layouts, keyboard focus states and reduced-motion support.
 
-AI requires an `OPENAI_API_KEY`; no key is bundled. Without it the API returns a clear 503 response. Local CRUD, reports and MCP tools were verified against real MySQL. A live AI response and container startup remain pending; see [PRE_SUBMISSION.md](PRE_SUBMISSION.md).
+Prices and trip dates are demonstration data for real destinations. This application does not book or sell trips.
 
-## Structure
+## Stack
 
-```text
-Database/       schema, seed and local real database export
-Backend/        REST API, MCP server, tests, assets and Postman collection
-Frontend/       React client and tests
-scripts/        setup, export/restore verification and submission packaging
-compose.yaml    MySQL + backend (including MCP) + frontend
-```
+| Layer        | Technologies                                                             |
+| ------------ | ------------------------------------------------------------------------ |
+| Frontend     | React, TypeScript, Vite, Redux Toolkit, React Hook Form, Axios, Recharts |
+| Backend      | Node.js, Express, TypeScript, Zod, JWT, mysql2                           |
+| AI           | OpenAI Responses API, MCP TypeScript SDK                                 |
+| Database     | MySQL; users, vacations and likes tables                                 |
+| Deployment   | Docker Compose, MySQL 8.4, nginx                                         |
+| Verification | Node test runner, Supertest, Vitest, Testing Library, Playwright/Edge    |
 
-The `01 - Northwind` class reference is unchanged and excluded from Git/build/submission. [PROJECT_MEMORY.md](PROJECT_MEMORY.md) records requirements, decisions and verification history; its later entries supersede earlier milestones.
+## Start with Docker
 
-## Local setup
-
-Use Node.js 24, npm and MySQL 8.0+ or Docker Desktop with Linux containers.
-
-From the project root:
+Install Docker Desktop with Linux containers enabled, and Node.js 24 to run the setup script. From the repository root:
 
 ```powershell
 node scripts/setup.mjs
+docker compose up -d --build
 ```
 
-This creates root `.env` and `Backend/.env` only when absent; existing settings are preserved. New local backend settings use port **4001** and the Docker database on **3307**. For an existing local MySQL server, set the real `MYSQL_*` values in `Backend/.env`; create the dedicated `vacationly` database first. Passwords and keys belong only in ignored environment files.
+The setup script generates local `.env` files and random secrets when absent. It preserves existing settings; no environment templates or default account passwords are required.
 
-Backend terminal:
+| Service        | Address                          |
+| -------------- | -------------------------------- |
+| Website        | http://localhost:5173            |
+| Backend health | http://localhost:4000/api/health |
+| Docker MySQL   | 127.0.0.1:3307                   |
+
+Docker initializes the schema and twelve vacations on first startup. The database and uploaded images persist in named volumes. Stop with `docker compose down`; do not remove volumes if you want to retain data. Stop a local Vite server before starting Docker if it occupies port 5173.
+
+For MySQL Workbench, connect to `127.0.0.1`, port `3307`, user `vacationly`, using `MYSQL_PASSWORD` from the root `.env`. A separately installed MySQL server on port `3306` has independent data.
+
+## Create an administrator
+
+Public registration always creates a regular user. To create a new administrator, add these optional settings to the root `.env`:
+
+```dotenv
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD=choose-your-own-password
+```
+
+Then run:
+
+```powershell
+docker compose up -d backend
+docker compose exec backend node dist/scripts/init-database.js
+```
+
+Use an email that is not already registered. Initialization preserves existing accounts and never promotes or overwrites them. For local backend development, set the optional values in `Backend/.env` and run `npm run db:init` from Backend instead.
+
+## Local development
+
+Install Node.js 24 and MySQL 8.0+, or run just the Docker database:
+
+```powershell
+node scripts/setup.mjs
+docker compose up -d database
+```
+
+In separate terminals:
 
 ```powershell
 cd Backend
@@ -49,59 +85,64 @@ npm run db:init
 npm run dev
 ```
 
-Frontend terminal:
-
 ```powershell
 cd Frontend
 npm ci
 npm run dev
 ```
 
-Site: `http://127.0.0.1:5173`. The development proxy forwards `/api` to port 4001. Backend health: `http://127.0.0.1:4001/api/health`.
+The frontend uses `http://127.0.0.1:5173` and proxies `/api` to backend port `4001`. Generated backend settings connect to Docker MySQL on port `3307`. To use an existing MySQL installation, create a dedicated `vacationly` database and adjust `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD` and `MYSQL_DATABASE` in `Backend/.env`.
 
-Initialization preserves existing tables and vacation data. Seed dates are relative to the initial import and do not move each time the application starts. Prices and trip dates are demonstration data for real destinations. Do not re-import seed into an already populated table.
-
-## Administrator account
-
-Set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `Backend/.env`, then run `npm run db:init` from Backend. There is no fixed default administrator password. The script creates an administrator only if that email is unused; it never promotes or overwrites an existing user.
-
-For Docker, set those variables in the **root** `.env`, recreate the backend with Compose, then run:
-
-```powershell
-docker compose exec backend node dist/scripts/init-database.js
-```
-
-## Docker
-
-With Docker Desktop's Linux engine running, from the root:
-
-```powershell
-node scripts/setup.mjs
-docker compose up -d --build
-```
-
-Site: `http://localhost:5173`. Backend: `http://localhost:4000/api/health`. Database: `127.0.0.1:3307`. Ensure host ports 5173, 4000 and 3307 are free. Compose creates three services, waits for database/backend health and persists the database and uploads in named volumes. MCP runs inside the backend process.
-
-Stop with `docker compose down`; preserve volumes to keep data and uploaded images.
-
-Compose syntax was validated locally. Container startup is **not yet verified** because this Windows machine reports that WSL is not installed and Docker's Linux engine cannot start.
+Other backend settings: `NODE_ENV`, `PORT`, `JWT_SECRET` (at least 32 characters) and `CLIENT_ORIGIN`. Root `.env` supplies Compose with `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD` and `JWT_SECRET`. Keep all real environment files private.
 
 ## AI and MCP
 
-For local development, put `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in `Backend/.env`. For Docker, put them in root `.env` and recreate the backend. Default model: `gpt-4.1-mini`.
+Add `OPENAI_API_KEY` to root `.env` for Docker, or `Backend/.env` for local development. `OPENAI_MODEL` is optional and defaults to `gpt-4.1-mini`. Recreate the Docker backend after changing its environment:
 
-- `/recommendations` sends a destination to the backend, which invokes the OpenAI Responses API.
-- `/questions` sends a question to the backend. The model discovers `vacation_statistics` and `search_vacations`, calls them through an actual MCP Client/McpServer pair, and receives database results before answering.
-- `InMemoryTransport` carries real MCP initialization, discovery and JSON-RPC calls inside the backend. Each request has its own MCP session; tools are not exposed through an unauthenticated public endpoint.
-- Tools provide read-only, parameterized vacation queries; no user records or arbitrary SQL. Status, country, continent, destination and price filters are supported. Search is limited to 50 rows per call with offset and total; statistics cover every match.
-- Active includes both date boundaries in UTC; upcoming starts after today. Country/continent are documented additions to support geographic questions.
-- Provider keys never enter the frontend. The API uses bounded requests, timeouts and rate limits; missing configuration or provider failure shows a service error, never a fake answer.
+```powershell
+docker compose up -d backend
+```
 
-Implementation references: [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling), [model documentation](https://developers.openai.com/api/docs/models/gpt-4.1-mini), [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk/tree/v1.x).
+AI calls use the configured provider account and may incur charges. Without a key, the rest of the application works and AI requests return a clear configuration error.
 
-## Verification
+- `/recommendations`: destination → authenticated backend → OpenAI → travel recommendation.
+- `/questions`: question → OpenAI tool selection → actual MCP Client/McpServer calls → MySQL results → answer.
+- MCP runs inside the backend using `InMemoryTransport`; there is no separate public MCP URL. Each request initializes its own session and discovers the tools.
+- `vacation_statistics` computes counts and price aggregates across all matches. `search_vacations` supports status, geography, destination and price filters, with at most 50 results per call and offset/total metadata.
+- Tools are read-only, use parameterized SQL, and expose vacation information rather than user records. Relevant vacation data is sent to the configured AI provider to answer questions.
+- Keys stay on the server. Requests have timeouts, step limits and rate limits; failures never produce a fabricated answer.
 
-Backend:
+Active includes both boundary dates in UTC; upcoming means a start date after today. Seed dates are relative to the initial import and do not move each time the website opens. Do not seed an already populated table again.
+
+## Project structure
+
+```text
+Backend/
+  src/controllers/    HTTP routes and input parsing
+  src/services/       Business logic and AI orchestration
+  src/mcp/            Read-only MCP tools
+  src/middleware/     Authentication, roles, uploads and errors
+  src/models/         Types, enums and validation
+  src/utils/          Database, configuration, passwords and image storage
+  tests/              Unit, API, MySQL and browser checks
+  assets/             Seed images and source attribution
+Frontend/
+  src/components/     Layout, auth, vacations, reports and AI pages
+  src/assets/         Generated coastal background
+  src/redux/          Authentication state
+  src/services/       API operations
+  src/index.css       Documented theme, components and responsive styles
+Database/             Schema and demonstration seed
+scripts/              Setup, verification, export and submission utilities
+docs/                 Manual review and design asset provenance
+compose.yaml          Database, backend and frontend deployment
+```
+
+Source comments are in English. The generated background prompt and provenance are in [docs/design-assets.md](docs/design-assets.md). Seed photo sources are recorded in [Backend/assets/image-sources.json](Backend/assets/image-sources.json).
+
+## Tests and formatting
+
+From Backend:
 
 ```powershell
 npm test
@@ -109,43 +150,71 @@ npm run build
 npm run test:mysql
 ```
 
-Frontend:
+From Frontend:
 
 ```powershell
 npm test
 npm run build
 ```
 
-After building the frontend and installing dependencies in both projects, from Backend:
+After installing both sets of dependencies and building Frontend, run the browser flow from Backend. It requires installed Microsoft Edge:
 
 ```powershell
 npm run test:browser
 ```
 
-The browser check uses the installed Microsoft Edge in headless mode. It starts a temporary local app server and runs the real UI against MySQL: auth/roles, CRUD/images, confirmation cancellation, graph/CSV, 9+3 pagination, likes, session restoration and mobile width. Test records are created inside a rolled-back InnoDB transaction, and generated test images are cleaned. MySQL AUTO_INCREMENT counters can advance despite rollback.
+To test the deployed Docker website instead, use PowerShell:
 
-Verified on 2026-10-12: **36 backend tests, 9 frontend tests, both production builds, real MySQL integration, real-browser flow, and database export restoration**. AI orchestration is tested with an isolated provider; a paid live provider call was not made.
+```powershell
+$env:DOCKER_BROWSER = "1"
+npm run test:browser
+Remove-Item Env:DOCKER_BROWSER
+```
+
+Local integration/browser checks roll back temporary records; Docker browser checks remove their temporary accounts and vacations afterward. AUTO_INCREMENT counters can advance. Browser AI requests are intercepted to test loading, safe text, error and retry states without provider charges.
+
+Explicit live checks are separate and make paid provider calls:
+
+```powershell
+# From Backend, against local backend configuration:
+npx tsx tests/live-ai.mts
+# From the root, through deployed Docker nginx/API:
+Get-Content -Raw scripts/docker-live-ai.mjs | docker compose exec -T backend node --input-type=module
+```
+
+The Docker live check requires the unchanged twelve bundled demo vacation fixtures before sending data externally. See [docs/manual-review.md](docs/manual-review.md) for the manual acceptance checklist.
+
+For consistent source formatting, from the root:
+
+```powershell
+npm ci
+npm run format:check
+npm run format
+```
+
+Verification includes 36 backend tests, 9 frontend tests, production builds, real MySQL and local/Docker browser flows, live AI/MCP comparisons with SQL, image cleanup, export restoration and restart persistence. Excel application opening and final manual acceptance are separate from automated CSV checks.
 
 ## API and Postman
 
-Import `Backend/Vacationly.postman_collection.json`. Set `baseUrl`, credentials and dates; select a real file in upload requests. Login/register save the token. Adding a vacation saves `createdVacationId`, and the collection's management requests use that ID.
+Import [Backend/Vacationly.postman_collection.json](Backend/Vacationly.postman_collection.json). Set `baseUrl`, credentials and dates, and choose actual files in upload requests. Login/register save the token; creation saves a separate `createdVacationId` for management requests.
 
-| Method | Path | Access |
-| --- | --- | --- |
-| GET | `/api/health` | Public |
-| POST | `/api/register`, `/api/login` | Public |
-| GET | `/api/me` | Signed in |
-| GET | `/api/vacations?filter=all&page=1` | Signed in |
-| PUT / DELETE | `/api/vacations/:id/like` | User |
-| POST | `/api/vacations` | Admin, multipart |
-| GET / PUT / DELETE | `/api/vacations/:id` | Admin; PUT accepts multipart |
-| GET | `/api/vacations/report`, `/api/vacations/report.csv` | Admin |
-| POST | `/api/ai/recommendation`, `/api/ai/question` | Signed in |
-| GET | `/api/vacations/images/:imageName` | Public image files |
+| Method             | Endpoint                                             | Access               |
+| ------------------ | ---------------------------------------------------- | -------------------- |
+| GET                | `/api/health`                                        | Public               |
+| POST               | `/api/register`, `/api/login`                        | Public               |
+| GET                | `/api/me`, `/api/vacations`                          | Signed in            |
+| PUT / DELETE       | `/api/vacations/:id/like`                            | User                 |
+| POST               | `/api/vacations`                                     | Admin; multipart     |
+| GET / PUT / DELETE | `/api/vacations/:id`                                 | Admin; PUT multipart |
+| GET                | `/api/vacations/report`, `/api/vacations/report.csv` | Admin                |
+| POST               | `/api/ai/recommendation`, `/api/ai/question`         | Signed in            |
+| GET                | `/api/vacations/images/:imageName`                   | Public               |
 
-## Database export and submission ZIP
+## Database export and course submission
 
-From the root, after installing backend dependencies:
+The repository includes schema and seed, sufficient for a fresh installation. Real account data, local database exports, environment files, uploads, dependencies, build outputs and internal working notes are excluded from Git.
+
+To prepare the separate local course archive:
 
 ```powershell
 node scripts/export-database.mjs
@@ -153,10 +222,6 @@ node scripts/verify-export.mjs
 node scripts/package-submission.mjs henvizman
 ```
 
-Export/restore scripts use MySQL command-line tools. On Windows their defaults point to MySQL Server 8.0; override `MYSQLDUMP_PATH` and `MYSQL_CLIENT_PATH` if needed. Restore verification creates a separate temporary database, compares all three table counts, then removes that temporary database. It requires permission to create a database.
+Export/restore requires installed MySQL CLI tools; override `MYSQLDUMP_PATH` and `MYSQL_CLIENT_PATH` when needed. Restore verification creates a temporary database, compares three table counts and removes it. ZIP packaging currently requires Windows PowerShell.
 
-`Database/vacationly-export.sql` is a real export, including existing local account data; it is included in the local ZIP but ignored by Git. To restore manually into a dedicated empty database, import that export rather than running the seed on top of it.
-
-The ZIP is `artifacts/henvizman.zip`, with a top folder named `henvizman`, containing Database, Backend, Frontend, README, Compose and supporting scripts. It excludes node_modules, secrets, build caches and Northwind. The packaging script currently uses Windows PowerShell.
-
-Complete [PRE_SUBMISSION.md](PRE_SUBMISSION.md), add the real GitHub URL above and upload the reviewed ZIP to the course assignment tab.
+`artifacts/henvizman.zip` includes a real local database export for course submission. It can contain local account data and is not intended for public GitHub upload. Restore that export into a dedicated empty database rather than adding seed data on top of it.

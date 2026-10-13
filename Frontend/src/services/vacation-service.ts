@@ -1,4 +1,9 @@
-import type { VacationFilter, VacationInput, VacationModel, VacationPage } from "../models/vacation-model";
+import type {
+    VacationFilter,
+    VacationInput,
+    VacationModel,
+    VacationPage,
+} from "../models/vacation-model";
 import { api } from "../utils/api";
 
 class VacationService {
@@ -45,8 +50,15 @@ class VacationService {
     }
 
     // Requests a filtered, paginated list; the signal can cancel an obsolete request.
-    public async getPage(filter: VacationFilter, page: number, signal?: AbortSignal): Promise<VacationPage> {
-        const response = await api.get<VacationPage>("/vacations", { params: { filter, page }, signal });
+    public async getPage(
+        filter: VacationFilter,
+        page: number,
+        signal?: AbortSignal,
+    ): Promise<VacationPage> {
+        const response = await api.get<VacationPage>("/vacations", {
+            params: { filter, page },
+            signal,
+        });
         return response.data;
     }
     // Adds a like with PUT or removes it with DELETE for one vacation.

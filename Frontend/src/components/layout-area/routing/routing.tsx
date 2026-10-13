@@ -9,25 +9,42 @@ import { About } from "../../pages-area/about/about";
 import { Page404 } from "../../pages-area/page404/page404";
 
 // Load the chart library only when an administrator opens the reporting page.
-const VacationReport = lazy(() => import("../../vacation-area/vacation-report/vacation-report").then(module => ({ default: module.VacationReport })));
+const VacationReport = lazy(() =>
+    import("../../vacation-area/vacation-report/vacation-report").then((module) => ({
+        default: module.VacationReport,
+    })),
+);
 
 // Maps browser paths to pages and protects the vacation page from guests.
 export function Routing() {
-    return <Suspense fallback={<p className="loading-state" role="status">Loading page…</p>}><Routes>
-        <Route path="/" element={<Navigate to="/vacations" replace />} />
-        <Route path="/login" element={<AuthPage key="login" mode="login" />} />
-        <Route path="/register" element={<AuthPage key="register" mode="register" />} />
-        <Route element={<ProtectedRoute />}>
-            <Route path="/vacations" element={<VacationList />} />
-            <Route path="/recommendations" element={<AiPage key="recommendations" />} />
-            <Route path="/questions" element={<AiPage key="questions" questions />} />
-        </Route>
-        <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/vacations/new" element={<AddVacation key="create" />} />
-            <Route path="/vacations/:id/edit" element={<AddVacation key="edit" editing />} />
-            <Route path="/reports" element={<VacationReport />} />
-        </Route>
-        <Route path="/about" element={<About />} />
-        <Route path="*" element={<Page404 />} />
-    </Routes></Suspense>;
+    return (
+        <Suspense
+            fallback={
+                <p className="loading-state" role="status">
+                    Loading page…
+                </p>
+            }
+        >
+            <Routes>
+                <Route path="/" element={<Navigate to="/vacations" replace />} />
+                <Route path="/login" element={<AuthPage key="login" mode="login" />} />
+                <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/vacations" element={<VacationList />} />
+                    <Route path="/recommendations" element={<AiPage key="recommendations" />} />
+                    <Route path="/questions" element={<AiPage key="questions" questions />} />
+                </Route>
+                <Route element={<ProtectedRoute adminOnly />}>
+                    <Route path="/vacations/new" element={<AddVacation key="create" />} />
+                    <Route
+                        path="/vacations/:id/edit"
+                        element={<AddVacation key="edit" editing />}
+                    />
+                    <Route path="/reports" element={<VacationReport />} />
+                </Route>
+                <Route path="/about" element={<About />} />
+                <Route path="*" element={<Page404 />} />
+            </Routes>
+        </Suspense>
+    );
 }

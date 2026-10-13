@@ -15,17 +15,23 @@ function Result() {
 }
 
 async function fillForm(destination = "Paris") {
-    render(<MemoryRouter initialEntries={["/vacations/new"]}>
-        <Routes>
-            <Route path="/vacations/new" element={<AddVacation />} />
-            <Route path="/vacations" element={<Result />} />
-        </Routes>
-    </MemoryRouter>);
+    render(
+        <MemoryRouter initialEntries={["/vacations/new"]}>
+            <Routes>
+                <Route path="/vacations/new" element={<AddVacation />} />
+                <Route path="/vacations" element={<Result />} />
+            </Routes>
+        </MemoryRouter>,
+    );
     const today = new Date().toISOString().slice(0, 10);
     for (const [label, value] of [
-        ["Destination", destination], ["Country", "France"], ["Continent", "Europe"],
-        ["Description", "Walk beside the Seine."], ["Start date", today],
-        ["End date", today], ["Price (USD)", "0"]
+        ["Destination", destination],
+        ["Country", "France"],
+        ["Continent", "Europe"],
+        ["Description", "Walk beside the Seine."],
+        ["Start date", today],
+        ["End date", today],
+        ["Price (USD)", "0"],
     ]) {
         fireEvent.change(screen.getByLabelText(label), { target: { value } });
     }
@@ -41,14 +47,24 @@ function submitForm() {
 }
 
 it("submits a zero-price, same-day vacation with its image and navigates after success", async () => {
-    const add = vi.spyOn(vacationService, "add").mockResolvedValue({ destination: "Paris" } as VacationModel);
+    const add = vi
+        .spyOn(vacationService, "add")
+        .mockResolvedValue({ destination: "Paris" } as VacationModel);
     const { today, image } = await fillForm();
     submitForm();
     expect(await screen.findByText("Created: Paris")).toBeVisible();
-    expect(add).toHaveBeenCalledWith({
-        destination: "Paris", country: "France", continent: "Europe", description: "Walk beside the Seine.",
-        startDate: today, endDate: today, price: 0
-    }, image);
+    expect(add).toHaveBeenCalledWith(
+        {
+            destination: "Paris",
+            country: "France",
+            continent: "Europe",
+            description: "Walk beside the Seine.",
+            startDate: today,
+            endDate: today,
+            price: 0,
+        },
+        image,
+    );
 });
 
 it("blocks whitespace-only text before sending an upload", async () => {
@@ -61,12 +77,17 @@ it("blocks whitespace-only text before sending an upload", async () => {
 
 it("blocks repeated submission while saving and preserves input after an API failure", async () => {
     let rejectUpload!: (error: Error) => void;
-    const add = vi.spyOn(vacationService, "add").mockImplementation(() => new Promise((_resolve, reject) => {
-        rejectUpload = reject;
-    }));
+    const add = vi.spyOn(vacationService, "add").mockImplementation(
+        () =>
+            new Promise((_resolve, reject) => {
+                rejectUpload = reject;
+            }),
+    );
     await fillForm();
     submitForm();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Saving vacation…" })).toBeDisabled());
+    await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Saving vacation…" })).toBeDisabled(),
+    );
     expect(screen.getByLabelText("Destination")).toBeDisabled();
     rejectUpload(new Error("Upload failed."));
     expect(await screen.findByRole("alert")).toHaveTextContent("Upload failed.");

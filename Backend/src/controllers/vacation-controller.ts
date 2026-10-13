@@ -2,7 +2,11 @@ import { HttpStatus } from "../models/enums";
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { securityMiddleware } from "../middleware/security-middleware";
-import { vacationCreateSchema, vacationUpdateSchema, vacationQuerySchema } from "../models/vacation-model";
+import {
+    vacationCreateSchema,
+    vacationUpdateSchema,
+    vacationQuerySchema,
+} from "../models/vacation-model";
 import { vacationService } from "../services/vacation-service";
 import { uploadMiddleware } from "../middleware/upload-middleware";
 import { imageStorage } from "../utils/image-storage";
@@ -14,15 +18,56 @@ class VacationController {
     public constructor() {
         this.router.get("/api/vacations", securityMiddleware.verifyLoggedIn, this.getPage);
         // Register fixed report paths before the dynamic vacation identifier.
-        this.router.get("/api/vacations/report", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyAdmin, this.report);
-        this.router.get("/api/vacations/report.csv", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyAdmin, this.csv);
-        this.router.get("/api/vacations/:id", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyAdmin, this.getOne);
-        this.router.put("/api/vacations/:id", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyAdmin, uploadMiddleware, this.update);
-        this.router.delete("/api/vacations/:id", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyAdmin, this.remove);
-        this.router.post("/api/vacations", securityMiddleware.verifyLoggedIn,
-            securityMiddleware.verifyAdmin, uploadMiddleware, this.add);
-        this.router.put("/api/vacations/:id/like", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyUser, this.addLike);
-        this.router.delete("/api/vacations/:id/like", securityMiddleware.verifyLoggedIn, securityMiddleware.verifyUser, this.removeLike);
+        this.router.get(
+            "/api/vacations/report",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            this.report,
+        );
+        this.router.get(
+            "/api/vacations/report.csv",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            this.csv,
+        );
+        this.router.get(
+            "/api/vacations/:id",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            this.getOne,
+        );
+        this.router.put(
+            "/api/vacations/:id",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            uploadMiddleware,
+            this.update,
+        );
+        this.router.delete(
+            "/api/vacations/:id",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            this.remove,
+        );
+        this.router.post(
+            "/api/vacations",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyAdmin,
+            uploadMiddleware,
+            this.add,
+        );
+        this.router.put(
+            "/api/vacations/:id/like",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyUser,
+            this.addLike,
+        );
+        this.router.delete(
+            "/api/vacations/:id/like",
+            securityMiddleware.verifyLoggedIn,
+            securityMiddleware.verifyUser,
+            this.removeLike,
+        );
     }
 
     // Validate identifiers for all administrator actions before building SQL.
@@ -50,7 +95,10 @@ class VacationController {
     }
 
     private async csv(_request: Request, response: Response): Promise<void> {
-        response.type("text/csv; charset=utf-8").attachment("vacation-likes.csv").send(await vacationService.getCsv());
+        response
+            .type("text/csv; charset=utf-8")
+            .attachment("vacation-likes.csv")
+            .send(await vacationService.getCsv());
     }
 
     // Authorize before parsing uploads; validate fields before writing any image or row.

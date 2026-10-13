@@ -12,5 +12,5 @@ export const uploadMiddleware = fileUpload({
     parseNested: false,
     limitHandler: (_request, _response, next) => {
         next(new ClientError(HttpStatus.PayloadTooLarge, "Image must be no larger than 5 MB."));
-    }
+    },
 });

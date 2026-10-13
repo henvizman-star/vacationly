@@ -11,25 +11,32 @@ import { dal } from "./utils/dal";
 
 // Creating the Express app does not open a port; tests can import it safely.
 export function createServer() {
-    
     const server = express();
 
     server.disable("x-powered-by");
     server.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
     server.use(cors({ origin: appConfig.clientOrigin }));
     server.use(express.json({ limit: "32kb" }));
-    
+
     // Reports whether the API can reach MySQL, not merely whether HTTP is running.
     server.get("/api/health", async (_request, response) => {
         try {
             await dal.execute("SELECT 1");
             response.json({ status: "ok", database: "connected" });
         } catch {
-            response.status(HttpStatus.ServiceUnavailable).json({ status: "unavailable", database: "disconnected" });
+            response
+                .status(HttpStatus.ServiceUnavailable)
+                .json({ status: "unavailable", database: "disconnected" });
         }
     });
-    server.use("/api/vacations/images", express.static(appConfig.uploadsPath, { index: false, dotfiles: "deny" }));
-    server.use("/api/vacations/images", express.static(appConfig.imagesPath, { index: false, dotfiles: "deny" }));
+    server.use(
+        "/api/vacations/images",
+        express.static(appConfig.uploadsPath, { index: false, dotfiles: "deny" }),
+    );
+    server.use(
+        "/api/vacations/images",
+        express.static(appConfig.imagesPath, { index: false, dotfiles: "deny" }),
+    );
     server.use(userController.router);
     server.use(vacationController.router);
     server.use(aiController.router);

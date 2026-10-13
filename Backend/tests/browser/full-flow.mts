@@ -10,12 +10,22 @@ import { appConfig } from "../../src/utils/app-config";
 import { dal } from "../../src/utils/dal";
 import { cyber } from "../../src/utils/cyber";
 import { imageStorage } from "../../src/utils/image-storage";
+import { parse } from "dotenv";
 
 const requireFrontend = createRequire(path.resolve("../Frontend/package.json"));
 const { chromium, expect } = requireFrontend("@playwright/test");
-const connection = await mysql.createConnection({ host: appConfig.mysqlHost, port: appConfig.mysqlPort,
-    user: appConfig.mysqlUser, password: appConfig.mysqlPassword, database: appConfig.mysqlDatabase,
-    dateStrings: true, decimalNumbers: true });
+// External mode verifies the deployed Docker website; clean up only this run's records.
+const dockerMode = process.env.DOCKER_BROWSER === "1";
+const dockerEnv = dockerMode ? parse(await fs.readFile("../.env")) : {};
+const connection = await mysql.createConnection({
+    host: dockerMode ? "127.0.0.1" : appConfig.mysqlHost,
+    port: dockerMode ? 3307 : appConfig.mysqlPort,
+    user: dockerMode ? "vacationly" : appConfig.mysqlUser,
+    password: dockerMode ? dockerEnv.MYSQL_PASSWORD : appConfig.mysqlPassword,
+    database: dockerMode ? "vacationly" : appConfig.mysqlDatabase,
+    dateStrings: true,
+    decimalNumbers: true,
+});
 const originalExecute = dal.execute;
 const originalSave = imageStorage.save.bind(imageStorage);
 const images: string[] = [];
@@ -27,29 +37,40 @@ const destination = "Browser QA " + tag;
 const results = path.resolve("../test-results");
 await fs.mkdir(results, { recursive: true });
 const [engines] = await connection.execute<RowDataPacket[]>(
-    "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('users', 'vacations', 'likes')"
+    "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('users', 'vacations', 'likes')",
 );
 assert.equal(engines.length, 3);
-assert.ok(engines.every(row => row.ENGINE === "InnoDB"));
-await connection.beginTransaction();
+assert.ok(engines.every((row) => row.ENGINE === "InnoDB"));
+if (!dockerMode) await connection.beginTransaction();
 
 // Run the real application queries in one transaction; rollback all browser test accounts and likes.
-dal.execute = async <T>(sql: string, values: unknown[] = []) => (await connection.execute(sql, values))[0] as T;
-imageStorage.save = async file => { const name = await originalSave(file); images.push(name); return name; };
+if (!dockerMode) {
+    dal.execute = async <T,>(sql: string, values: unknown[] = []) =>
+        (await connection.execute(sql, values))[0] as T;
+    imageStorage.save = async (file) => {
+        const name = await originalSave(file);
+        images.push(name);
+        return name;
+    };
+}
 const website = express();
 const builtClient = path.resolve("../Frontend/dist");
 website.use(express.static(builtClient));
-website.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => res.sendFile(path.join(builtClient, "index.html")));
+website.get(/^(?!\/api(?:\/|$)).*/, (_req, res) =>
+    res.sendFile(path.join(builtClient, "index.html")),
+);
 website.use(createServer());
 const listener = website.listen(0, "127.0.0.1");
-await new Promise<void>(resolve => listener.once("listening", resolve));
+await new Promise<void>((resolve) => listener.once("listening", resolve));
 const address = listener.address();
 assert.ok(address && typeof address !== "string");
-const baseUrl = "http://127.0.0.1:" + address.port;
+const baseUrl = dockerMode ? "http://localhost:5173" : "http://127.0.0.1:" + address.port;
 let browser: any;
 try {
-    await connection.execute("INSERT INTO users (firstName, lastName, email, passwordHash, roleId) VALUES (?, ?, ?, ?, 1)",
-        ["Browser", "Admin", adminEmail, await cyber.hashPassword(password)]);
+    await connection.execute(
+        "INSERT INTO users (firstName, lastName, email, passwordHash, roleId) VALUES (?, ?, ?, ?, 1)",
+        ["Browser", "Admin", adminEmail, await cyber.hashPassword(password)],
+    );
     browser = await chromium.launch({ channel: "msedge", headless: true });
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     page.setDefaultTimeout(15000);
@@ -57,6 +78,12 @@ try {
     page.on("pageerror", (error: Error) => errors.push(error.message));
     await page.goto(baseUrl + "/vacations");
     await expect(page.getByRole("heading", { name: "Welcome back." })).toBeVisible();
+    // Both AI routes must redirect guests without rendering their private forms.
+    for (const route of ["/recommendations", "/questions"]) {
+        await page.goto(baseUrl + route);
+        await expect(page.getByRole("heading", { name: "Welcome back." })).toBeVisible();
+        await expect(page.locator("#ai-input")).toHaveCount(0);
+    }
     await page.goto(baseUrl + "/about");
     await expect(page.getByText("henvizman", { exact: true })).toBeVisible();
     await page.goto(baseUrl + "/login");
@@ -69,7 +96,9 @@ try {
     await page.getByLabel("Destination", { exact: true }).fill(destination);
     await page.getByLabel("Country", { exact: true }).fill("France");
     await page.getByLabel("Continent", { exact: true }).selectOption("Europe");
-    await page.getByLabel("Description", { exact: true }).fill("Created by the real browser integration test.");
+    await page
+        .getByLabel("Description", { exact: true })
+        .fill("Created by the real browser integration test.");
     const today = new Date().toISOString().slice(0, 10);
     await page.getByLabel("Start date", { exact: true }).fill(today);
     await page.getByLabel("End date", { exact: true }).fill(today);
@@ -78,7 +107,10 @@ try {
     await page.getByRole("button", { name: "Add vacation", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "was added" })).toBeVisible();
     await page.getByRole("button", { name: "Happening now", exact: true }).click();
-    const card = () => page.locator(".vacation-card").filter({ has: page.getByRole("heading", { name: destination, exact: true }) });
+    const card = () =>
+        page
+            .locator(".vacation-card")
+            .filter({ has: page.getByRole("heading", { name: destination, exact: true }) });
     await expect(card()).toBeVisible();
     await card().getByRole("link", { name: "Edit", exact: true }).click();
     await expect(page.getByLabel("Destination", { exact: true })).toHaveValue(destination);
@@ -94,7 +126,9 @@ try {
     await page.getByRole("button", { name: "Save changes", exact: true }).click();
     await expect(card()).toBeVisible();
     page.once("dialog", (dialog: any) => dialog.dismiss());
-    await card().getByRole("button", { name: "Delete " + destination, exact: true }).click();
+    await card()
+        .getByRole("button", { name: "Delete " + destination, exact: true })
+        .click();
     await expect(card()).toBeVisible();
     await page.getByRole("link", { name: "Reports", exact: true }).click();
     await expect(page.getByRole("table")).toBeVisible();
@@ -103,11 +137,16 @@ try {
     await page.getByRole("button", { name: "Download CSV", exact: true }).click();
     const download = await downloaded;
     await download.saveAs(path.join(results, "browser-report.csv"));
-    assert.match(await fs.readFile(path.join(results, "browser-report.csv"), "utf8"), /Destination,Likes/);
+    assert.match(
+        await fs.readFile(path.join(results, "browser-report.csv"), "utf8"),
+        /Destination,Likes/,
+    );
     await page.screenshot({ path: path.join(results, "report-real-mysql.png"), fullPage: true });
     await page.getByRole("link", { name: "Explore vacations", exact: true }).click();
     page.once("dialog", (dialog: any) => dialog.accept());
-    await card().getByRole("button", { name: "Delete " + destination, exact: true }).click();
+    await card()
+        .getByRole("button", { name: "Delete " + destination, exact: true })
+        .click();
     await expect(card()).toHaveCount(0);
     await page.getByRole("button", { name: /Sign out/ }).click();
 
@@ -129,30 +168,138 @@ try {
     await page.getByRole("button", { name: "Unlike Rome", exact: true }).click();
     await expect(page.getByText("No vacations here yet.", { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Travel ideas", exact: true }).click();
+    await expect(
+        page.getByRole("button", { name: "Get recommendation", exact: true }),
+    ).toBeDisabled();
     await page.getByLabel("Destination", { exact: true }).fill("Rome");
-    // Do not spend a real API key in this test; missing-key error handling is verified separately.
+    // Intercept only paid AI requests: verify real UI states without spending a key.
+    // Hold the response until the real pending UI is verified, without paid provider calls.
+    let releaseRecommendation!: () => void;
+    const pendingRecommendation = new Promise<void>((resolve) => {
+        releaseRecommendation = resolve;
+    });
+    await page.route("**/api/ai/recommendation", async (route: any) => {
+        assert.deepEqual(route.request().postDataJSON(), { destination: "Rome" });
+        await pendingRecommendation;
+        await route.fulfill({
+            status: 200,
+            json: {
+                answer: "Browser test travel ideas for Rome. <script>window.aiInjected=true</script>",
+            },
+        });
+    });
+    await page.getByRole("button", { name: "Get recommendation", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("travel inspiration");
+    await expect(page.getByRole("button", { name: "Thinking…", exact: true })).toBeDisabled();
+    releaseRecommendation();
+    await expect(
+        page.getByRole("heading", { name: "Travel recommendation", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".ai-thinking")).toHaveCount(0);
+    await expect(page.locator(".ai-answer")).toContainText("<script>");
+    assert.equal(await page.evaluate(() => (window as any).aiInjected), undefined);
     await page.getByRole("link", { name: "Ask vacations", exact: true }).click();
     await expect(page.getByLabel("Your question", { exact: true })).toBeVisible();
+    let questionAttempts = 0;
+    let releaseQuestion!: () => void;
+    const pendingQuestion = new Promise<void>((resolve) => {
+        releaseQuestion = resolve;
+    });
+    await page.route("**/api/ai/question", async (route: any) => {
+        assert.deepEqual(route.request().postDataJSON(), {
+            question: "How many vacations are active?",
+        });
+        questionAttempts++;
+        await pendingQuestion;
+        await route.fulfill(
+            questionAttempts === 1
+                ? {
+                      status: 503,
+                      json: { message: "The AI service is unavailable. Please try again later." },
+                  }
+                : { status: 200, json: { answer: "Browser test database answer after retry." } },
+        );
+    });
+    await page.getByLabel("Your question", { exact: true }).fill("How many vacations are active?");
+    await page.getByRole("button", { name: "Ask question", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("Checking vacation data");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(
+        await page
+            .locator(".ai-thinking-orbit")
+            .evaluate(
+                (element: HTMLElement) => getComputedStyle(element, "::before").animationName,
+            ),
+        "none",
+    );
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    releaseQuestion();
+    await expect(page.getByRole("alert")).toContainText("AI service is unavailable");
+    await expect(page.locator(".ai-thinking")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Ask question", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Ask question", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Database answer", exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator(".ai-answer")).toContainText("after retry");
+    assert.equal(questionAttempts, 2);
     await page.goto(baseUrl + "/vacations/new");
     await expect(page.getByRole("heading", { name: "Where to next?" })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(results, "mobile-real-mysql.png"), fullPage: true });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
+    assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+        false,
+    );
     await page.reload();
     await expect(page.getByRole("heading", { name: "Where to next?" })).toBeVisible();
     assert.deepEqual(errors, []);
-    console.log("Browser + real MySQL passed: auth, roles, CRUD/images, report/CSV, 9+3 paging, likes, session and mobile.");
+    console.log(
+        `${dockerMode ? "Docker" : "Local"} browser + real MySQL passed: auth, roles, CRUD/images, report/CSV, 9+3 paging, likes, AI UI success/error/retry, session and mobile. AI provider calls were intercepted.`,
+    );
 } finally {
     if (browser) await browser.close();
-    await new Promise<void>(resolve => listener.close(() => resolve()));
+    await new Promise<void>((resolve) => listener.close(() => resolve()));
     dal.execute = originalExecute;
     imageStorage.save = originalSave;
     try {
-        await connection.rollback();
-        const [rows] = await connection.execute<RowDataPacket[]>("SELECT id FROM users WHERE email IN (?, ?)", [adminEmail, userEmail]);
+        if (dockerMode) {
+            // On failure remove a remaining test vacation through the API so uploads are cleaned too.
+            const [leftovers] = await connection.execute<RowDataPacket[]>(
+                "SELECT id FROM vacations WHERE destination = ?",
+                [destination],
+            );
+            if (leftovers.length) {
+                const login = await fetch(baseUrl + "/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: adminEmail, password }),
+                });
+                assert.equal(login.status, 200);
+                const cleanupToken = await login.json();
+                for (const row of leftovers) {
+                    const removed = await fetch(baseUrl + `/api/vacations/${row.id}`, {
+                        method: "DELETE",
+                        headers: { Authorization: `Bearer ${cleanupToken}` },
+                    });
+                    assert.equal(removed.status, 204);
+                }
+            }
+            await connection.execute("DELETE FROM users WHERE email IN (?, ?)", [
+                adminEmail,
+                userEmail,
+            ]);
+        } else await connection.rollback();
+        const [rows] = await connection.execute<RowDataPacket[]>(
+            "SELECT id FROM users WHERE email IN (?, ?)",
+            [adminEmail, userEmail],
+        );
         assert.equal(rows.length, 0);
     } finally {
-        try { for (const image of images) await imageStorage.remove(image); }
-        finally { await connection.end(); await dal.close(); }
+        try {
+            for (const image of images) await imageStorage.remove(image);
+        } finally {
+            await connection.end();
+            await dal.close();
+        }
     }
 }

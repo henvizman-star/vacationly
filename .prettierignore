@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+artifacts
+test-results
+01 - Northwind
+local-assets
+.env
+**/.env
+**/.env.*
+PROJECT_MEMORY.md
+CLASS_PROJECT_REVIEW.md
+AGENTS.md
+PRE_SUBMISSION.md
+Database/vacationly-export.sql
+**/package-lock.json
+Backend/Vacationly.postman_collection.json

@@ -1,4 +1,9 @@
-export enum Role { Admin = 1, User = 2 }
+export enum Role {
+    Admin = 1,
+    User = 2,
+}
 
 // HTTP response codes handled by the client.
-export enum HttpStatus { Unauthorized = 401 }
+export enum HttpStatus {
+    Unauthorized = 401,
+}

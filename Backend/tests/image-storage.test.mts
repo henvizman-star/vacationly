@@ -12,10 +12,22 @@ process.env.MYSQL_PASSWORD = "test-only";
 const { ImageStorage, maxImageBytes } = await import("../src/utils/image-storage");
 const { uploadMiddleware } = await import("../src/middleware/upload-middleware");
 const { errorMiddleware } = await import("../src/middleware/error-middleware");
-const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jC9sAAAAASUVORK5CYII=", "base64");
+const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jC9sAAAAASUVORK5CYII=",
+    "base64",
+);
 function upload(data = png, mimetype = "image/png"): UploadedFile {
-    return { name: "../../overwrite.png", data, size: data.length, mimetype,
-        truncated: false, encoding: "7bit", tempFilePath: "", md5: "", mv: async () => {} };
+    return {
+        name: "../../overwrite.png",
+        data,
+        size: data.length,
+        mimetype,
+        truncated: false,
+        encoding: "7bit",
+        tempFilePath: "",
+        md5: "",
+        mv: async () => {},
+    };
 }
 
 test("images receive unique names, preserve content, and can be removed without touching seed images", async () => {
@@ -65,13 +77,20 @@ test("multipart parser accepts one image and returns JSON errors for multiple or
         res.json({ size: file.size, destination: req.body.destination });
     });
     app.use(errorMiddleware.catchAll);
-    const success = await request(app).post("/upload").field("destination", "Rome")
+    const success = await request(app)
+        .post("/upload")
+        .field("destination", "Rome")
         .attach("image", png, "rome.png");
     assert.equal(success.status, 200);
     assert.deepEqual(success.body, { size: png.length, destination: "Rome" });
-    const duplicate = await request(app).post("/upload").attach("image", png, "a.png").attach("image", png, "b.png");
+    const duplicate = await request(app)
+        .post("/upload")
+        .attach("image", png, "a.png")
+        .attach("image", png, "b.png");
     assert.equal(duplicate.status, 422);
-    const large = await request(app).post("/upload").attach("image", Buffer.alloc(maxImageBytes + 1), "large.png");
+    const large = await request(app)
+        .post("/upload")
+        .attach("image", Buffer.alloc(maxImageBytes + 1), "large.png");
     assert.equal(large.status, 413);
     assert.equal(typeof large.body.message, "string");
 });
